@@ -1,10 +1,25 @@
 
+import { db } from '../db';
+import { blogPostsTable } from '../db/schema';
 import { type DeleteBlogPostInput } from '../schema';
+import { eq } from 'drizzle-orm';
 
-export async function deleteBlogPost(input: DeleteBlogPostInput): Promise<{ success: boolean }> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is deleting a blog post from the database by ID.
-    // It should remove the blog post from the blog_posts table and return success status.
-    // Should throw an error if blog post is not found.
-    return Promise.resolve({ success: true });
-}
+export const deleteBlogPost = async (input: DeleteBlogPostInput): Promise<{ success: boolean }> => {
+  try {
+    // Delete the blog post by ID
+    const result = await db.delete(blogPostsTable)
+      .where(eq(blogPostsTable.id, input.id))
+      .returning()
+      .execute();
+
+    // Check if any rows were deleted
+    if (result.length === 0) {
+      throw new Error(`Blog post with ID ${input.id} not found`);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Blog post deletion failed:', error);
+    throw error;
+  }
+};

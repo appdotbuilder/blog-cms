@@ -1,18 +1,27 @@
 
+import { db } from '../db';
+import { blogPostsTable } from '../db/schema';
 import { type GetBlogPostInput, type BlogPost } from '../schema';
+import { eq } from 'drizzle-orm';
 
-export async function getBlogPost(input: GetBlogPostInput): Promise<BlogPost | null> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching a single blog post by ID from the database.
-    // It should return the blog post if found, or null if not found.
-    return Promise.resolve({
-        id: input.id,
-        title: "Placeholder Title",
-        body: "# Placeholder Content\n\nThis is placeholder markdown content.",
-        author: "Placeholder Author",
-        publication_date: new Date(),
-        tags: ["placeholder"],
-        created_at: new Date(),
-        updated_at: new Date()
-    } as BlogPost);
-}
+export const getBlogPost = async (input: GetBlogPostInput): Promise<BlogPost | null> => {
+  try {
+    const result = await db.select()
+      .from(blogPostsTable)
+      .where(eq(blogPostsTable.id, input.id))
+      .execute();
+
+    if (result.length === 0) {
+      return null;
+    }
+
+    const blogPost = result[0];
+    return {
+      ...blogPost,
+      tags: blogPost.tags || [] // Ensure tags is always an array
+    };
+  } catch (error) {
+    console.error('Blog post retrieval failed:', error);
+    throw error;
+  }
+};

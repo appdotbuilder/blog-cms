@@ -1,19 +1,51 @@
 
+import { db } from '../db';
+import { blogPostsTable } from '../db/schema';
 import { type UpdateBlogPostInput, type BlogPost } from '../schema';
+import { eq } from 'drizzle-orm';
 
-export async function updateBlogPost(input: UpdateBlogPostInput): Promise<BlogPost> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is updating an existing blog post in the database.
-    // It should find the blog post by ID, update the provided fields, set updated_at to current time,
-    // and return the updated blog post. Should throw an error if blog post is not found.
-    return Promise.resolve({
-        id: input.id,
-        title: input.title || "Updated Title",
-        body: input.body || "Updated body content",
-        author: input.author || "Updated Author",
-        publication_date: input.publication_date || new Date(),
-        tags: input.tags || [],
-        created_at: new Date(),
-        updated_at: new Date()
-    } as BlogPost);
-}
+export const updateBlogPost = async (input: UpdateBlogPostInput): Promise<BlogPost> => {
+  try {
+    // Build update object with only provided fields
+    const updateData: Partial<typeof blogPostsTable.$inferInsert> = {
+      updated_at: new Date() // Always update the timestamp
+    };
+
+    if (input.title !== undefined) {
+      updateData.title = input.title;
+    }
+    
+    if (input.body !== undefined) {
+      updateData.body = input.body;
+    }
+    
+    if (input.author !== undefined) {
+      updateData.author = input.author;
+    }
+    
+    if (input.publication_date !== undefined) {
+      updateData.publication_date = input.publication_date;
+    }
+    
+    if (input.tags !== undefined) {
+      updateData.tags = input.tags;
+    }
+
+    // Update the blog post and return the updated record
+    const result = await db.update(blogPostsTable)
+      .set(updateData)
+      .where(eq(blogPostsTable.id, input.id))
+      .returning()
+      .execute();
+
+    // Check if blog post was found and updated
+    if (result.length === 0) {
+      throw new Error(`Blog post with id ${input.id} not found`);
+    }
+
+    return result[0];
+  } catch (error) {
+    console.error('Blog post update failed:', error);
+    throw error;
+  }
+};
